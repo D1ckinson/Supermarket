@@ -10,20 +10,53 @@ namespace Супермаркет
         {
             ProductFabric productFabric = new ProductFabric();
             CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames);
+            Customer customer = customerFabric.CreateCustomer();
+            Shop shop = new Shop(productFabric);
         }
     }
 
     class Customer
     {
         private Dictionary<string, int> _wishList;
-        private List<Product> _products;
+        private List<Product> _products = new List<Product>();
         private int _money;
+        private int _moneyToPay = 0;
 
         public Customer(int money, Dictionary<string, int> wishList)
         {
             _money = money;
             _wishList = wishList;
         }
+
+        public int BuyProducts(List<Product> productsToReturn)
+        {
+            _products.ForEach(product => _moneyToPay += product.Price);
+
+            while (_moneyToPay > _money)
+                RemoveProduct(productsToReturn);
+
+            _money -= _moneyToPay;
+
+            return _moneyToPay;
+        }
+
+        public void TakeProducts(List<Shelf> shelves)
+        {
+            for (int i = 0; i < _wishList.Count; i++)
+                if (FindProduct(shelves[i]))
+                    _products.AddRange(shelves[i].GiveProducts(_wishList[shelves[i].ProductName]));
+        }
+
+        private void RemoveProduct(List<Product> productsToReturn)
+        {
+            _moneyToPay -= _products.Last().Price;
+
+            productsToReturn.Add(_products.Last());
+
+            _products.RemoveAt(_products.Count - 1);
+        }
+
+        private bool FindProduct(Shelf shelf) => _wishList.Keys.Contains(shelf.ProductName);
     }
 
     class CustomerFabric
@@ -54,7 +87,7 @@ namespace Супермаркет
             }
 
             if (wishList.Count == 0)
-                wishList.Add(_products[0], 1);
+                wishList.Add(_products[_random.Next(_products.Count)], 1);
 
             return wishList;
         }
@@ -70,12 +103,6 @@ namespace Супермаркет
 
         public string Name { get; set; }
         public int Price { get; set; }
-
-        public void Check(string name, int price)
-        {
-            Name = name;
-            Price = price;
-        }
 
         public object Clone() => MemberwiseClone();
     }
@@ -122,7 +149,9 @@ namespace Супермаркет
             _shelves.ForEach(shelf => shelf.GetProducts(_productFabric.CreateProducts(shelf.ProductName, _productQuantity)));
         }
 
+        public void GetProducts(List<Product> products) => _storage.AddRange(products);
 
+        public void LetCustomersIn(List<Customer> customers) => _customers.AddRange(customers);
     }
 
     class Shelf
