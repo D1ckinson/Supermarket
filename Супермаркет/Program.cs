@@ -11,6 +11,16 @@ namespace Супермаркет
             ProductFabric productFabric = new ProductFabric();
             CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames);
 
+            List<Product> products = productFabric.CreateProducts("Сыр", 21);
+            List<Product> products2 = new List<Product>();
+
+            Shelf shelf = new Shelf();
+            Shelf shelf1 = new Shelf(products);
+
+            products2.AddRange(shelf.GiveProducts("Сыр"));
+            products2.AddRange(shelf1.GiveProducts("Сыр", 70));
+
+            shelf.GetProducts(products);
         }
     }
 
@@ -104,6 +114,61 @@ namespace Супермаркет
 
     class Shop
     {
+        private int _money = 0;
+        private List<Product> _productList = new List<Product>();
+    }
 
+    class Shelf
+    {
+        private int _maxProducts = 20;
+        private bool _isFull = false;
+        private List<Product> _products = new List<Product>();
+
+        public Shelf(List<Product> products = null)
+        {
+            if (products != null)
+                GetProducts(products);
+        }
+
+        public void GetProducts(List<Product> products)
+        {
+            while (!_isFull && products.Any())
+            {
+                _products.Add(products[0]);
+
+                products.RemoveAt(0);
+
+                SetFullness();
+            }
+        }
+
+        public List<Product> GiveProducts(string productName, int quantity = 1)
+        {
+            List<Product> products = new List<Product>();
+
+            if (quantity > _maxProducts)
+                quantity = _maxProducts;
+
+            for (int i = 0; i < quantity; i++)
+            {
+                if (_products.Exists(product => product.Name == productName))
+                {
+                    products.Add(_products.Find(product => product.Name == productName));
+                    _products.Remove(products.Last());
+                }
+            }
+
+            SetFullness();
+
+            return products;
+        }
+
+        private void SetFullness()
+        {
+            if (_products.Count == _maxProducts)
+                _isFull = true;
+            else
+                _isFull = false;
+        }
     }
 }
