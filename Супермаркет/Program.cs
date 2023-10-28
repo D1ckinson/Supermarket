@@ -10,17 +10,6 @@ namespace Супермаркет
         {
             ProductFabric productFabric = new ProductFabric();
             CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames);
-
-            List<Product> products = productFabric.CreateProducts("Сыр", 21);
-            List<Product> products2 = new List<Product>();
-
-            Shelf shelf = new Shelf();
-            Shelf shelf1 = new Shelf(products);
-
-            products2.AddRange(shelf.GiveProducts("Сыр"));
-            products2.AddRange(shelf1.GiveProducts("Сыр", 70));
-
-            shelf.GetProducts(products);
         }
     }
 
@@ -115,7 +104,25 @@ namespace Супермаркет
     class Shop
     {
         private int _money = 0;
-        private List<Product> _productList = new List<Product>();
+        private int _productQuantity = 10;
+
+        private List<string> _productsNames = new List<string>();
+        private List<Shelf> _shelves = new List<Shelf>();
+        private List<Product> _storage = new List<Product>();
+        private List<Customer> _customers = new List<Customer>();
+        private ProductFabric _productFabric;
+
+        public Shop(ProductFabric productFabric)
+        {
+            _productFabric = productFabric;
+            _productsNames = _productFabric.ProductsNames;
+
+            _productsNames.ForEach(name => _shelves.Add(new Shelf(name)));
+
+            _shelves.ForEach(shelf => shelf.GetProducts(_productFabric.CreateProducts(shelf.ProductName, _productQuantity)));
+        }
+
+
     }
 
     class Shelf
@@ -124,25 +131,36 @@ namespace Супермаркет
         private bool _isFull = false;
         private List<Product> _products = new List<Product>();
 
-        public Shelf(List<Product> products = null)
+        public Shelf(string productName, List<Product> products = null)
         {
+            ProductName = productName;
+
             if (products != null)
                 GetProducts(products);
         }
 
+        public string ProductName { private set; get; }
+
+        public void ChangeProductName(string productName, List<Product> products)
+        {
+            products.AddRange(_products);
+            _products.Clear();
+            ProductName = productName;
+        }
+
         public void GetProducts(List<Product> products)
         {
-            while (!_isFull && products.Any())
+            while (!_isFull && products.Any(product => product.Name == ProductName))
             {
-                _products.Add(products[0]);
+                _products.Add(products.Find(product => product.Name == ProductName));
 
-                products.RemoveAt(0);
+                products.Remove(_products.Last());
 
                 SetFullness();
             }
         }
 
-        public List<Product> GiveProducts(string productName, int quantity = 1)
+        public List<Product> GiveProducts(int quantity = 1)
         {
             List<Product> products = new List<Product>();
 
@@ -151,10 +169,14 @@ namespace Супермаркет
 
             for (int i = 0; i < quantity; i++)
             {
-                if (_products.Exists(product => product.Name == productName))
+                if (_products.Any())
                 {
-                    products.Add(_products.Find(product => product.Name == productName));
-                    _products.Remove(products.Last());
+                    products.Add(_products[0]);
+                    _products.RemoveAt(0);
+                }
+                else
+                {
+                    break;
                 }
             }
 
