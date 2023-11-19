@@ -9,7 +9,7 @@ namespace Супермаркет
         static void Main()
         {
             ProductFabric productFabric = new ProductFabric();
-            CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames);
+            CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames.ToList());
             Shop shop = new Shop(productFabric);
 
             shop.Open(customerFabric.CreateCustomers());
@@ -131,15 +131,15 @@ namespace Супермаркет
     class ProductFabric
     {
         private List<Product> _products = new List<Product> { new Product("Картошка", 30), new Product("Сыр", 335), new Product("Колбаса", 541) };
-
+        public IReadOnlyList<string> ProductsNames;
         public ProductFabric()
         {
-            ProductsNames = new List<string>();
+            List<string> productNames = new List<string>();
 
-            _products.ForEach(product => ProductsNames.Add(product.Name));
+            _products.ForEach(product => productNames.Add(product.Name));
+
+            ProductsNames = productNames;
         }
-
-        public List<string> ProductsNames { get; private set; }
 
         public List<Product> CreateProducts(string name, int quantity = 1)
         {
@@ -169,7 +169,7 @@ namespace Супермаркет
         public Shop(ProductFabric productFabric)
         {
             _productFabric = productFabric;
-            _productsNames = _productFabric.ProductsNames;
+            _productsNames = _productFabric.ProductsNames.ToList();
 
             _productsNames.ForEach(name => _shelves.Add(new Shelf(name)));
 
@@ -239,7 +239,7 @@ namespace Супермаркет
 
                 products.ForEach(product => _storage.Remove(product));
 
-                shelf.GetProducts(products);
+                shelf.TakeProducts(products);
             }
 
         }
@@ -252,7 +252,7 @@ namespace Супермаркет
 
                 List<Product> productsOfSameType = products.FindAll(product => product == productToFind);
 
-                _shelves.Find(shelf => shelf.ProductName == productToFind.Name).GetProducts(productsOfSameType);
+                _shelves.Find(shelf => shelf.ProductName == productToFind.Name).TakeProducts(productsOfSameType);
             }
         }
     }
@@ -268,16 +268,16 @@ namespace Супермаркет
             ProductName = productName;
 
             if (products != null)
-                GetProducts(products);
+                TakeProducts(products);
         }
 
         public string ProductName { private set; get; }
 
         public int FreePlaces => _maxProducts - _products.Count;
 
-        public void GetProducts(List<Product> products)
+        public void TakeProducts(List<Product> products)
         {
-            while (!_isFull && products.Any(product => product.Name == ProductName))
+            while (_isFull == false && products.Any(product => product.Name == ProductName))
             {
                 _products.Add(products.Find(product => product.Name == ProductName));
 
