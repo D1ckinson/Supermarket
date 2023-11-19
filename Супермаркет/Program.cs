@@ -12,9 +12,7 @@ namespace Супермаркет
             CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames);
             Shop shop = new Shop(productFabric);
 
-            Queue<Customer> cus = customerFabric.CreateCustomers();
-
-            shop.Open(cus);
+            shop.Open(customerFabric.CreateCustomers());
         }
     }
 
@@ -42,7 +40,7 @@ namespace Супермаркет
 
             _money -= _moneyToPay;
 
-            Console.WriteLine("Покупатель оплатил продукты и пошел по своим делам.\n");
+            Console.WriteLine($"Покупатель заплатил {_moneyToPay} и пошел по своим делам.\n");
 
             return _moneyToPay;
         }
@@ -62,9 +60,9 @@ namespace Супермаркет
         {
             Product productToReturn = _products[RandomUtility.GetNumber(_products.Count)];
 
-            Console.WriteLine("Покупателю не хватает денег для оплаты и он убрал " + productToReturn.Name);
-
             _moneyToPay -= productToReturn.Price;
+
+            Console.WriteLine($"Покупателю не хватает денег для оплаты и он убрал {productToReturn.Name}, теперь он должен заплатить {_moneyToPay}.");
 
             productsToReturn.Add(productToReturn);
 
@@ -232,7 +230,18 @@ namespace Супермаркет
 
         private void PutProductOnShelves()
         {
-            _shelves.ForEach(shelf => shelf.GetProducts(_storage));
+            foreach (Shelf shelf in _shelves)
+            {
+                List<Product> products = new List<Product>();
+
+                for (int i = 0; i < shelf.FreePlaces; i++)
+                    products.Add(_storage.Find(product => product.Name == shelf.ProductName));
+
+                products.ForEach(product => _storage.Remove(product));
+
+                shelf.GetProducts(products);
+            }
+
         }
 
         private void ReturnProductsOnShelves(List<Product> products)
@@ -264,12 +273,7 @@ namespace Супермаркет
 
         public string ProductName { private set; get; }
 
-        public void ChangeProductName(string productName, List<Product> products)
-        {
-            products.AddRange(_products);
-            _products.Clear();
-            ProductName = productName;
-        }
+        public int FreePlaces => _maxProducts - _products.Count;
 
         public void GetProducts(List<Product> products)
         {
@@ -308,21 +312,15 @@ namespace Супермаркет
             return products;
         }
 
-        private void SetFullness()
-        {
-            if (_products.Count == _maxProducts)
-                _isFull = true;
-            else
-                _isFull = false;
-        }
+        private void SetFullness() => _isFull = _products.Count == _maxProducts;
     }
 
     static class RandomUtility
     {
-        static private Random _random = new Random();
+        static private Random s_random = new Random();
 
-        public static int GetNumber(int value) => _random.Next(value);
+        public static int GetNumber(int value) => s_random.Next(value);
 
-        public static int GetNumber(int minValue, int maxValue) => _random.Next(minValue, maxValue);
+        public static int GetNumber(int minValue, int maxValue) => s_random.Next(minValue, maxValue);
     }
 }
