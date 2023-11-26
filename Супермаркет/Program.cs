@@ -90,10 +90,8 @@ namespace Супермаркет
         private int _maxCustomers = 15;
         private List<Product> _products;
 
-        public CustomerFabric(List<Product> products)
-        {
+        public CustomerFabric(List<Product> products) =>
             _products = products;
-        }
 
         public Queue<Customer> CreateCustomers()
         {
@@ -141,23 +139,12 @@ namespace Супермаркет
 
     class ProductFabric
     {
-        private List<Product> _products;
-
-        public ProductFabric()
-        {
-            _products = GetProducts();
-
-            List<string> productNames = new List<string>();
-
-            _products.ForEach(product => productNames.Add(product.Name));
-        }
-
         public List<Product> CreateProducts(string name, int quantity = 1)
         {
             List<Product> products = new List<Product>();
             Product product;
 
-            product = _products.Find(desiredProduct => desiredProduct.Name == name);
+            product = GetProducts().Find(desiredProduct => desiredProduct.Name == name);
 
             for (int i = 0; i < quantity; i++)
                 products.Add(product.Clone());
@@ -311,9 +298,9 @@ namespace Супермаркет
                 TakeProducts(products);
         }
 
-        private bool IsFull => _products.Count == _maxProducts;
         public int FreePlaces => _maxProducts - _products.Count;
         public string ProductName { private set; get; }
+        private bool IsFull => _products.Count == _maxProducts;
 
         public void TakeProducts(List<Product> products)
         {
@@ -342,8 +329,8 @@ namespace Супермаркет
     {
         static private Random s_random = new Random();
 
-        public static int GiveNumber(int value) => s_random.Next(value);
+        static public int GiveNumber(int value) => s_random.Next(value);
 
-        public static int GiveNumber(int minValue, int maxValue) => s_random.Next(minValue, maxValue);
+        static public int GiveNumber(int minValue, int maxValue) => s_random.Next(minValue, maxValue);
     }
 }
