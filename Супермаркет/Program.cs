@@ -9,7 +9,7 @@ namespace Супермаркет
         static void Main()
         {
             ProductFabric productFabric = new ProductFabric();
-            CustomerFabric customerFabric = new CustomerFabric(productFabric.ProductsNames.ToList());
+            CustomerFabric customerFabric = new CustomerFabric(productFabric.GetProducts());
             Shop shop = new Shop(productFabric);
 
             shop.Open(customerFabric.CreateCustomers());
@@ -21,7 +21,6 @@ namespace Супермаркет
         private Dictionary<string, int> _wishList;
         private List<Product> _products = new List<Product>();
         private int _money;
-        private int _moneyToPay = 0;
 
         public Customer(int money, Dictionary<string, int> wishList)
         {
@@ -29,59 +28,57 @@ namespace Супермаркет
             _wishList = wishList;
         }
 
-        public int BuyProducts(List<Product> productsToReturn)
-        {
-            _products.ForEach(product => _moneyToPay += product.Price);
+        public bool IsThisProductINeed(string productName) => _wishList.Keys.Contains(productName);
 
+        public int TellDesiredQuantityOfProduct(string productName) => _wishList[productName];
+
+        public void BuyProducts(List<Product> productsToReturn)
+        {
             if (_products.Any())
             {
-                Console.WriteLine($"У покупателя {_money} денег, он набрал товаров на {_moneyToPay}.");
+                Console.WriteLine($"У покупателя {_money} денег, он набрал товаров на {CalculateProductsPrice()}.");
             }
             else
             {
                 Console.WriteLine("Покупатель не нашел нужных товаров и ушел.");
 
-                return 0;
+                return;
             }
 
-            while (_moneyToPay > _money)
-                RemoveProduct(productsToReturn);
+            while (CalculateProductsPrice() > _money)
+            {
+                productsToReturn.Add(RemoveRandomProduct());
 
-            _money -= _moneyToPay;
+                Console.WriteLine($"Покупателю не хватает денег для оплаты и он убрал {productsToReturn.Last().Name}, теперь он должен заплатить {CalculateProductsPrice()}.");
+            }
 
-            if (_moneyToPay > 0)
-                Console.WriteLine($"Покупатель заплатил {_moneyToPay} и пошел по своим делам.\n");
+            _money -= CalculateProductsPrice();
+
+            if (CalculateProductsPrice() > 0)
+                Console.WriteLine($"Покупатель заплатил {CalculateProductsPrice()} и пошел по своим делам.\n");
             else
                 Console.WriteLine("Покупателю не хватило денег ни на один продукт, он ушел грустным.\n");
-
-            return _moneyToPay;
         }
 
-        public void TakeProducts(List<Shelf> shelves)
+        public void TakeProducts(List<Product> products) => _products.AddRange(products);
+
+        public int CalculateProductsPrice()
         {
-            for (int i = 0; i < shelves.Count; i++)
-                if (IsWishProductOnShelf(shelves[i]))
-                    _products.AddRange(shelves[i].GiveProducts(_wishList[shelves[i].ProductName]));
+            int moneyToPay = 0;
 
-            Console.Write("Покупатель выбрал продукты: ");
+            _products.ForEach(product => moneyToPay += product.Price);
 
-            _products.ForEach(product => Console.Write(product.Name + ", "));
+            return moneyToPay;
         }
 
-        private void RemoveProduct(List<Product> productsToReturn)
+        private Product RemoveRandomProduct()
         {
             Product productToReturn = _products[RandomUtility.GiveNumber(_products.Count)];
 
-            _moneyToPay -= productToReturn.Price;
-
-            Console.WriteLine($"Покупателю не хватает денег для оплаты и он убрал {productToReturn.Name}, теперь он должен заплатить {_moneyToPay}.");
-
-            productsToReturn.Add(productToReturn);
-
             _products.Remove(productToReturn);
-        }
 
-        private bool IsWishProductOnShelf(Shelf shelf) => _wishList.Keys.Contains(shelf.ProductName);
+            return productToReturn;
+        }
     }
 
     class CustomerFabric
@@ -91,10 +88,12 @@ namespace Супермаркет
         private int _minWishValue = -5;
         private int _maxWishValue = 10;
         private int _maxCustomers = 15;
+        private List<Product> _products;
 
-        private List<string> _productsNames;
-
-        public CustomerFabric(List<string> productsNames) => _productsNames = productsNames;
+        public CustomerFabric(List<Product> products)
+        {
+            _products = products;
+        }
 
         public Queue<Customer> CreateCustomers()
         {
@@ -111,16 +110,16 @@ namespace Супермаркет
             int wishValue;
             Dictionary<string, int> wishList = new Dictionary<string, int>();
 
-            for (int i = 0; i < _productsNames.Count; i++)
+            for (int i = 0; i < _products.Count; i++)
             {
                 wishValue = RandomUtility.GiveNumber(_minWishValue, _maxWishValue);
 
                 if (wishValue > 0)
-                    wishList.Add(_productsNames[i], wishValue);
+                    wishList.Add(_products[i].Name, wishValue);
             }
 
             if (wishList.Count == 0)
-                wishList.Add(_productsNames[RandomUtility.GiveNumber(_productsNames.Count)], 1);
+                wishList.Add(_products[RandomUtility.GiveNumber(_products.Count)].Name, 1);
 
             return wishList;
         }
@@ -142,17 +141,15 @@ namespace Супермаркет
 
     class ProductFabric
     {
-        private List<Product> _products = new List<Product>();
-        public IReadOnlyList<string> ProductsNames;
+        private List<Product> _products;
+
         public ProductFabric()
         {
-            AddProducts();
+            _products = GetProducts();
 
             List<string> productNames = new List<string>();
 
             _products.ForEach(product => productNames.Add(product.Name));
-
-            ProductsNames = productNames;
         }
 
         public List<Product> CreateProducts(string name, int quantity = 1)
@@ -163,16 +160,21 @@ namespace Супермаркет
             product = _products.Find(desiredProduct => desiredProduct.Name == name);
 
             for (int i = 0; i < quantity; i++)
-                products.Add((Product)product.Clone());
+                products.Add(product.Clone());
 
             return products;
         }
 
-        private void AddProducts()
+        public List<Product> GetProducts()
         {
-            _products.Add(new Product("Картошка", 30));
-            _products.Add(new Product("Сыр", 335));
-            _products.Add(new Product("Колбаса", 541));
+            List<Product> products = new List<Product>
+            {
+                new Product("Картошка", 30),
+                new Product("Сыр", 335),
+                new Product("Колбаса", 541)
+            };
+
+            return products;
         }
     }
 
@@ -181,7 +183,6 @@ namespace Супермаркет
         private List<Product> _storage = new List<Product>();
         private Queue<Customer> _customers;
         private List<Shelf> _shelves = new List<Shelf>();
-        private List<string> _productsNames;
         private ProductFabric _productFabric;
 
         private int _money = 0;
@@ -190,9 +191,8 @@ namespace Супермаркет
         public Shop(ProductFabric productFabric)
         {
             _productFabric = productFabric;
-            _productsNames = _productFabric.ProductsNames.ToList();
 
-            _productsNames.ForEach(name => _shelves.Add(new Shelf(name)));
+            _productFabric.GetProducts().ForEach(product => _shelves.Add(new Shelf(product.Name)));
 
             ReplenishStorage();
 
@@ -227,9 +227,23 @@ namespace Супермаркет
             {
                 Customer customer = _customers.Dequeue();
 
-                customer.TakeProducts(_shelves);
+                for (int i = 0; i < _shelves.Count; i++)
+                {
+                    string productName = _shelves[i].ProductName;
 
-                _money += customer.BuyProducts(productsToReturn);
+                    if (customer.IsThisProductINeed(productName))
+                    {
+                        int desiredProductValue = customer.TellDesiredQuantityOfProduct(productName);
+
+                        List<Product> products = _shelves[i].GiveProducts(desiredProductValue);
+
+                        customer.TakeProducts(products);
+                    }
+                }
+
+                customer.BuyProducts(productsToReturn);
+
+                _money += customer.CalculateProductsPrice();
 
                 if (productsToReturn.Any())
                     ReturnProductsOnShelves(productsToReturn);
@@ -238,13 +252,15 @@ namespace Супермаркет
 
         private void ReplenishStorage()
         {
-            for (int i = 0; i < _productsNames.Count; i++)
+            List<Product> baseProducts = _productFabric.GetProducts();
+
+            for (int i = 0; i < baseProducts.Count(); i++)
             {
-                int productValueInStorage = _storage.FindAll(product => product.Name == _productsNames[i]).Count;
+                int productValueInStorage = _storage.FindAll(product => product.Name == baseProducts[i].Name).Count;
                 int productsValueToBuy = _maxProductTypeInStorage - productValueInStorage;
 
                 if (productsValueToBuy > 0)
-                    _storage.AddRange(_productFabric.CreateProducts(_productsNames[i], productsValueToBuy));
+                    _storage.AddRange(_productFabric.CreateProducts(baseProducts[i].Name, productsValueToBuy));
             }
         }
 
