@@ -41,7 +41,7 @@ namespace Супермаркет
                     return;
                 }
 
-                _money += customer.GiveMoney();
+                _money += customer.Buy();
                 customer.TakeProducts();
 
                 Console.WriteLine($"Покупатель купил продукты и ушел. Теперь у вас {_money} денег\n");
@@ -65,7 +65,7 @@ namespace Супермаркет
         public int BasketSize => _basket.Count;
         private int Price => _basket.Sum(product => product.Price);
 
-        public int GiveMoney()
+        public int Buy()
         {
             _money -= Price;
 
@@ -172,12 +172,12 @@ namespace Супермаркет
 
     static class RandomUtility
     {
-        static private Random s_random = new Random();
+        private static Random s_random = new Random();
 
-        static public int GenerateValue(int maxValue) =>
+        public static int GenerateValue(int maxValue) =>
             s_random.Next(maxValue);
 
-        static public int GenerateValue(int minValue, int maxValue) =>
+        public static int GenerateValue(int minValue, int maxValue) =>
             s_random.Next(minValue, maxValue);
     }
 }
